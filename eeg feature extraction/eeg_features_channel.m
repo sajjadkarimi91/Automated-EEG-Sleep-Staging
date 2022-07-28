@@ -1,5 +1,5 @@
 
-function [eeg_features, vec_eeg_features]= featurs_eeg_channel(x , windowSize , srate)
+function [eeg_features, vec_eeg_features]= eeg_features_channel(x , windowSize , srate)
 
 %% multiscale permutation entropy
 
@@ -66,7 +66,7 @@ parfor t = 1:size(X_wdw,2)
     fsrj = fsr_eeg(y(1:2:end),15);
     fsrj_1(:,t) = fsrj;
 
-    [mobility,complexity] = HjorthParameters(y(1:2:end)');
+    [mobility,complexity] = hjorth_parameters(y(1:2:end)');
     Hjorth_1(:,t) = [mobility;complexity];
 end
 

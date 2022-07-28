@@ -3,18 +3,12 @@ clc
 clear
 addpath(genpath(pwd))
 
+dataset_dir = 'D:/PHD codes/DataSets/sleepedf20/';
 
-mydir = pwd;
-idcs = strfind(mydir,filesep);
-% second parent folder contains the datasets
-dataset_dir = [mydir(1:idcs(end-1)-1),'/DataSets/sleepedf20/'];
-results_dir = [mydir(1:idcs(end-1)-1),'/Results/',mydir(idcs(end-1)+1:end)];
 
-mkdir(results_dir)
+%% load data & preprocessing
 
 dm_common_load;
-
-%%
 
 Fs = 100; % sampling rate
 
@@ -25,8 +19,6 @@ boundary = 1;
 % 1: avoiding edge effects by considering a much longer signal temporarily
 % 0: the edge artifacts may contaminate the part of the feature we are interested in.
 
-
-
 num_signal = min(2*sub,39)*2;
 
 Channels = cell((num_signal)/2, 3);
@@ -34,94 +26,81 @@ label = cell((num_signal)/2, 1);
 
 
 for caseNo = 1:min(2*sub,39)
-    
+
     sub_id = ceil(caseNo/2);
     d_id = 1+(1-rem(caseNo,2));
-    
+
     PSG1 = all_record{sub_id,d_id}(:,1);
     PSG2 = all_record{sub_id,d_id}(:,2);
     EOG = all_record{sub_id,d_id}(:,3);
     STAGE = all_hypnogram{sub_id,d_id};
-    
+
     before = (2+boundary);
     after =  boundary;
-    [x1,x2,num_STAGE,~]=truncated_rawPSG_HYP_SC(STAGE,PSG1,PSG2,(60+before),(60+after)); % include only 30 mins before and after sleep
-    [~,x3,num_STAGE,~]=truncated_rawPSG_HYP_SC(STAGE,PSG1,EOG,(60+before),(60+after)); % include only 30 mins before and after sleep
-    
-    
+    [x1,x2,num_STAGE,~] = truncated_rawPSG_HYP_SC(STAGE,PSG1,PSG2,(60+before),(60+after)); % include only 30 mins before and after sleep
+    [~,x3,num_STAGE,~] = truncated_rawPSG_HYP_SC(STAGE,PSG1,EOG,(60+before),(60+after)); % include only 30 mins before and after sleep
+
+
     RR = rem(length(x1),Fs*epoch);
     x1 = x1(1:length(x1)-RR);
-    
+
     RR = rem(length(x2),Fs*epoch);
     x2 = x2(1:length(x2)-RR);
-    
+
     RR = rem(length(x3),Fs*epoch);
     x3 = x3(1:length(x3)-RR);
-    
+
     label{caseNo} = num_STAGE;
-    
+
     Channels{caseNo, 1} = x1; % FPZCZ
     Channels{caseNo, 2} = x2; % PZOZ
     Channels{caseNo, 3} = x3; % EOG
-    
+
     if (length(x1)/100/30~=length(num_STAGE))
         error('error');
     end
     if (length(x2)/100/30~=length(num_STAGE))
         error('error');
     end
-    
+
 end
-clear x1 x2 truncated_PSG1 truncated_PSG2 PSG1 PSG2 num_STAGE
+clear x1 x2 PSG1 PSG2 num_STAGE
 
 
-Info.PID = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10,...
+subject_infos.PID = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10,...
     11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20]'; %
-Info.PID = Info.PID(1:min(sub*2,39));
+subject_infos.PID = subject_infos.PID(1:min(sub*2,39));
 
 %% stacking the signals for the scattering transform
 
 windowSize = 3000;
 for i = 1:size(Channels, 1)
     i
-    [eeg_features, vec_eeg_features] = featurs_eeg_channel(Channels{i, 1} , windowSize , Fs);  % FPZCZ
+    [~, vec_eeg_features] = eeg_features_channel(Channels{i, 1} , windowSize , Fs);  % FPZCZ
     Channels{i, 1} = vec_eeg_features(:,4:end-1);
-    
-    [eeg_features, vec_eeg_features] = featurs_eeg_channel(Channels{i, 2} , windowSize , Fs);% PZOZ
+
+    [~, vec_eeg_features] = eeg_features_channel(Channels{i, 2} , windowSize , Fs);% PZOZ
     Channels{i, 2} = vec_eeg_features(:,4:end-1);
-    
-    [eeg_features, vec_eeg_features] = featurs_eeg_channel(Channels{i, 3} , windowSize , Fs);% PZOZ
+
+    [~, vec_eeg_features] = eeg_features_channel(Channels{i, 3} , windowSize , Fs);% EOG
     Channels{i, 3} = vec_eeg_features(:,4:end-1);
-    
+
     label{i} = label{i}(4:end-1);
     if (size(Channels{i, 1},2)~=length(label{i}))
         error('error in label alignment');
     end
 end
 
-% for i = 1:size(Channels, 1)
-%     Channels{i, 1} = Channels{i, 1}(:,4:end-1);
-%       Channels{i, 1}(40,:)=[];
-%     Channels{i, 2} = Channels{i, 2}(:,4:end-1);
-%     Channels{i, 2}(40,:)=[];
-%     Channels{i, 3} = Channels{i, 3}(:,4:end-1);
-%     Channels{i, 3}(40,:)=[];
-%         label{i} = label{i}(4:end-1);
-%     if (size(Channels{i, 1},2)~=length(label{i}))
-%         error('error in label alignment');
-%     end
-% end
-
 Channels_org = Channels;
 
 save('channels.mat','Channels_org')
 
-%% organization and indexing
+%% organization, labelling and indexing
 
 Channels = Channels_org ;
 
 true_labels = cell(size(Channels, 1), 1);
-subjectId = cell(size(Info.PID));
+subjectId = cell(size(subject_infos.PID));
 for i = 1:size(Channels, 1)
     id = find(label{i} > 0);
     if length(id)<length(label{i})
@@ -131,24 +110,23 @@ for i = 1:size(Channels, 1)
         Channels{i, j} = Channels{i, j}(:,id); % removing the features corresponding to MOVEMENT
     end
     true_labels{i} = full(ind2vec(double(label{i}(id)')))';
-    subjectId{i} = repelem(Info.PID(i), length(true_labels{i}))';
+    subjectId{i} = repelem(subject_infos.PID(i), length(true_labels{i}))';
 end
 
 
 [X,Y,Z] = my_cell2mat3(Channels,1);
 
-X = X';
-Y = Y';
-Z = Z';
-
-%% 5-class SVM
-
 % concatenation
-COM{1,1} = X;
-COM{2,1} = Y;
-COM{3,1} = Z;
+feature_sets{1,1} = X';
+feature_sets{2,1} = Y';
+feature_sets{3,1} = Z';
 
-save('fe_channels.mat','COM')
+save('fe_channels.mat','feature_sets')
+
+%%
+
+
+
 
 %% 5-class SVM One-vs-One
 
@@ -171,15 +149,17 @@ end
 
 
 for ch = 1:3
-    
-    predictors = COM{ch,1};
-    
+
+    predictors = feature_sets{ch,1};
+
     template = templateSVM('KernelFunction', 'gaussian', ...
         'PolynomialOrder', [], 'KernelScale', 10, ...
         'BoxConstraint', 1, 'Standardize', true);
-    
-    % CompactClassificationECOC check line 367, [negloss,pscore] = score(...)
-    % Hinge loss
+
+    template = templateSVM('KernelFunction', 'linear', ...
+        'PolynomialOrder', [], 'KernelScale', [], ...
+        'BoxConstraint', 1, 'Standardize', true);
+
     prediction = cell(sub, 1);
     for i = 1:sub
         disp([ch,i])
@@ -216,35 +196,7 @@ for ch = 1:3
         hingeloss_test_ch{i} = round(validationScores,4);
         [~, prediction{i}] = max(validationScores, [], 2);
 
-
-        % create leave-one-out cross validation partition
-        cvp_train = struct;
-        cvp_train.NumObservations = size(response, 1);
-        cvp_train.testSize = zeros(1, sub-1);
-        cvp_train.trainSize = zeros(1, sub-1);
-        cvp_train.testStore = cell(1, sub-1);
-        cvp_train.trainStore = cell(1, sub-1);
-        train_subs = 1:sub;
-        train_subs(i)=[];
-        for j = 1:sub-1
-            cvp_train.testStore{j} = cell2mat(subjectId) == train_subs(j);
-            cvp_train.trainStore{j} = cell2mat(subjectId) ~= train_subs(j) & cell2mat(subjectId) ~= i;
-        end
-        
-        for j = 1:sub-1
-            Mdl = fitcecoc(predictors_this(cvp_train.trainStore{j}, :), response(cvp_train.trainStore{j}, :), ...
-                'Learners', template, ...
-                'Coding', 'onevsone', ...
-                'ClassNames', [1; 2; 3; 4; 5]);
-            
-            [~, validationScores] = predict(Mdl, predictors_this(cvp_train.testStore{j}, :));
-            hingeloss_cvtrain_ch{i,train_subs(j)} = round(validationScores,4);
-        end
-        hingeloss_cvtrain_ch{i,i} = hingeloss_test_ch{i};
     end
-    hingeloss_cvtrain{ch,1} = hingeloss_cvtrain_ch;
-    hingeloss_test{ch,1} = hingeloss_test_ch;
-    
 end
 
 save('fe_all_output.mat')
