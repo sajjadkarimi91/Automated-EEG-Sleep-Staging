@@ -2,4 +2,5 @@
 dataset/
 *.asv
 *.mat
+*.fig
 
