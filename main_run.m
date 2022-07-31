@@ -8,11 +8,13 @@ dataset_dir = 'D:/PHD codes/DataSets/sleepedf20/';
 
 %% load data & preprocessing
 
+sub = 5; % total subjects
+
 dm_common_load;
 
 Fs = 100; % sampling rate
 
-sub = 20; % total subjects
+
 epoch = 30;
 len = epoch*3; % each feature is extracted from 90s EEG signal;
 boundary = 1;

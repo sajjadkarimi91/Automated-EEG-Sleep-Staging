@@ -9,9 +9,7 @@ EEG_Filtered = zeros(N , T, NumTrail) ;
 
 % Filter each EEG channels
 for j=1:NumTrail
-    for i = 1 : N
-        
-        EEG_Filtered(i , :,j) = filtfilt(b(:)',1,squeeze(EEG(i , :,j)));
-        
+    for i = 1 : N        
+        EEG_Filtered(i , :,j) = filtfilt(b(:)',1,squeeze(EEG(i , :,j)));        
     end
 end
