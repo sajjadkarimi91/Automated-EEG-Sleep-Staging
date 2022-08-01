@@ -15,8 +15,9 @@ X = X - mb;
 
 if  strcmp(para.model , 'plsda')
     mu = para.mu_pca ;
-    coeff = para.coeff_pca;
+    coeff = para.W;
     beta_coef = para.beta_coef;
+    n = size(X,1);
     yhat = [ones(n,1) X]*beta_coef;
     Z = (yhat-mu)*coeff;
 else

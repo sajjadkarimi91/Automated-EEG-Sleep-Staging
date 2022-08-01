@@ -39,8 +39,8 @@ for caseNo = 1:min(2*sub,39)
 
     before = (2+boundary);
     after =  boundary;
-    [x1,x2,num_STAGE,~] = truncated_rawPSG_HYP_SC(STAGE,PSG1,PSG2,(60+before),(60+after)); % include only 30 mins before and after sleep
-    [~,x3,num_STAGE,~] = truncated_rawPSG_HYP_SC(STAGE,PSG1,EOG,(60+before),(60+after)); % include only 30 mins before and after sleep
+    [x1,x2,num_STAGE,~] = truncated_rawPSG_HYP_SC(STAGE,PSG1,PSG2,(240+before),(60+after)); % include only 120 mins before and after sleep
+    [~,x3,num_STAGE,~] = truncated_rawPSG_HYP_SC(STAGE,PSG1,EOG,(240+before),(60+after)); % include only 60 mins before and after sleep
 
 
     RR = rem(length(x1),Fs*epoch);
@@ -52,6 +52,7 @@ for caseNo = 1:min(2*sub,39)
     RR = rem(length(x3),Fs*epoch);
     x3 = x3(1:length(x3)-RR);
 
+    num_STAGE(num_STAGE>1) = 2; % wake condition
     label_org{caseNo} = num_STAGE;
 
     Channels{caseNo, 1} = x1; % FPZCZ
@@ -73,7 +74,7 @@ subject_infos.PID = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 1
     11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20]'; %
 subject_infos.PID = subject_infos.PID(1:min(sub*2,39));
 
-%% extracting features from signals
+%% stacking the signals for the scattering transform
 
 windowSize = 3000;
 for i = 1:size(Channels, 1)
@@ -95,7 +96,7 @@ end
 
 Channels_org = Channels;
 
-save('channels.mat','Channels_org','label')
+save('channels_b.mat','Channels_org','label')
 
 %% organization, labelling and indexing
 
@@ -123,7 +124,7 @@ feature_sets{1,1} = X';
 feature_sets{2,1} = Y';
 feature_sets{3,1} = Z';
 
-save('fe_channels.mat','feature_sets','true_labels','subjectId')
+save('fe_channels_b.mat','feature_sets','true_labels','subjectId')
 
 
 %% dimension reduction & visulization
@@ -336,3 +337,4 @@ test_labels_mat = cell2mat(test_labels);
 test_labels_mat(test_labels_mat>1) = 0;
 prediction_score_mat = cell2mat(prediction_score);
 prec_rec(prediction_score_mat,test_labels_mat ,'numThresh',length(prediction_score_mat));
+

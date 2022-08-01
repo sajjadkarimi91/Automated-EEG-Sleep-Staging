@@ -1,5 +1,5 @@
 
-%%
+%% load & preprocess EEG data
 clc
 
 sel_elec = 1:3;
@@ -42,11 +42,13 @@ for sub_num = 0:sub-1
 
             subj = record(sel_elec,:)';
             EEG_data = subj';
+            %eegplot(EEG_data, 'srate', srate);
 
             EEG_data = EEG_data - mean(EEG_data,2);
             EEG_data = sjk_eeg_filter(EEG_data,srate ,fc1,fc2);
 
             EEG_clean  = EEG_data;
+            %eegplot(EEG_clean, 'srate', srate);
             all_hypnogram{sub_num+1,d_rec} = hypnogram;
             all_hypnogram_L(sub_num+1,d_rec) = length( hypnogram )*30;
             all_record{sub_num+1,d_rec} = EEG_clean';
