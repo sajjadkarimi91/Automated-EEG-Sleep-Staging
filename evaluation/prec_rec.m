@@ -214,8 +214,8 @@ if (plot_pr || plot_roc)
             hold on
             hold all
             
-            plot([0; tpr], [1 ; prec], style); % add pseudo point to complete curve
-            
+            plot([0; tpr], [1 ; prec], style,'LineWidth',1.5); % add pseudo point to complete curve
+            grid on
             xlabel('recall');
             ylabel('precision');
             title('precision-recall graph');
@@ -232,8 +232,8 @@ if (plot_pr || plot_roc)
             hold on;
             hold all;
             
-            plot([0; fpr], [0; tpr], style); % add pseudo point to complete curve
-            
+            plot([0; fpr], [0; tpr], style,'LineWidth',1.5); % add pseudo point to complete curve
+            grid on
             xlabel('false positive rate');
             ylabel('true positive rate');
             title('roc curve');

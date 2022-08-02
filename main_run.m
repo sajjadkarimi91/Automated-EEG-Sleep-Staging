@@ -190,7 +190,7 @@ for i = 1:sub
 end
 
 %% 5-class SVM One-vs-One
-
+close all
 svm_flag = 0;
 
 feature_sets_mat = [feature_sets{1,1},feature_sets{2,1},feature_sets{3,1}];
@@ -229,12 +229,11 @@ acc = sum(cell2mat(test_labels)==cell2mat(prediction))/length(cell2mat(predictio
 disp(['Accuracy is: ',num2str(100*acc)])
 
 test_labels_mat = cell2mat(test_labels);
-test_labels_mat(test_labels_mat>1) = 0;
-prediction_score_mat = cell2mat(prediction_score);
-prec_rec(prediction_score_mat,test_labels_mat ,'numThresh',length(prediction_score_mat));
+output_label_mat = cell2mat(prediction);
+plotconfusion(test_labels_mat,output_label_mat);
 
 %% lda & plsda & 5-class SVM One-vs-One with
-
+close all
 %common settings
 svm_flag = 0;
 dim = 4;
@@ -289,12 +288,11 @@ acc = sum(cell2mat(test_labels)==cell2mat(prediction))/length(cell2mat(predictio
 disp(['Accuracy is: ',num2str(100*acc)])
 
 test_labels_mat = cell2mat(test_labels);
-test_labels_mat(test_labels_mat>1) = 0;
-prediction_score_mat = cell2mat(prediction_score);
-prec_rec(prediction_score_mat,test_labels_mat ,'numThresh',length(prediction_score_mat));
+output_label_mat = cell2mat(prediction);
+plotconfusion(test_labels_mat,output_label_mat);
 
 %% TSNE & 5-class SVM One-vs-One
-
+close all
 %common settings
 svm_flag = 0;
 
@@ -333,6 +331,5 @@ acc = sum(cell2mat(test_labels)==cell2mat(prediction))/length(cell2mat(predictio
 disp(['Accuracy is: ',num2str(100*acc)])
 
 test_labels_mat = cell2mat(test_labels);
-test_labels_mat(test_labels_mat>1) = 0;
-prediction_score_mat = cell2mat(prediction_score);
-prec_rec(prediction_score_mat,test_labels_mat ,'numThresh',length(prediction_score_mat));
+output_label_mat = cell2mat(prediction);
+plotconfusion(test_labels_mat,output_label_mat);

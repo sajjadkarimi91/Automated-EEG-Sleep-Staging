@@ -149,7 +149,9 @@ title('PCA')
 grid on
 
 subplot(2,1,2)
-gscatter(Z_lda(:,1),Z_lda(:,2),train_label)
+histogram(Z_lda(train_label==1,1))
+hold on
+histogram(Z_lda(train_label==2,1))
 title('LDA')
 grid on
 
@@ -159,7 +161,7 @@ tsne_features = tsne(feature_sets_mat);
 gscatter(tsne_features(:,1),tsne_features(:,2),train_label);
 grid on
 
-save('tsne_features.mat','tsne_features','true_labels','subjectId')
+save('tsne_features_b.mat','tsne_features','true_labels','subjectId')
 
 %% 5-fold cross validation
 
@@ -191,8 +193,8 @@ for i = 1:sub
 end
 
 %% 5-class SVM One-vs-One
-
-svm_flag = 0;
+close all
+svm_flag = 1;
 
 feature_sets_mat = [feature_sets{1,1},feature_sets{2,1},feature_sets{3,1}];
 feature_sets_mat = zscore(feature_sets_mat);
@@ -229,13 +231,19 @@ end
 acc = sum(cell2mat(test_labels)==cell2mat(prediction))/length(cell2mat(prediction));
 disp(['Accuracy is: ',num2str(100*acc)])
 
+%plot ROC & PRC
 test_labels_mat = cell2mat(test_labels);
-test_labels_mat(test_labels_mat>1) = 0;
+test_labels_mat(test_labels_mat>1) = 2;
+test_labels_mat = test_labels_mat-1;
 prediction_score_mat = cell2mat(prediction_score);
 prec_rec(prediction_score_mat,test_labels_mat ,'numThresh',length(prediction_score_mat));
 
-%% lda & plsda & 5-class SVM One-vs-One with
+%plot confusion matrix
+output_label_mat = cell2mat(prediction);
+plotconfusion(test_labels_mat,output_label_mat);
 
+%% lda & plsda & 5-class SVM One-vs-One with
+close all
 %common settings
 svm_flag = 0;
 dim = 4;
@@ -289,13 +297,15 @@ end
 acc = sum(cell2mat(test_labels)==cell2mat(prediction))/length(cell2mat(prediction));
 disp(['Accuracy is: ',num2str(100*acc)])
 
+%plot ROC & PRC
 test_labels_mat = cell2mat(test_labels);
-test_labels_mat(test_labels_mat>1) = 0;
-prediction_score_mat = cell2mat(prediction_score);
-prec_rec(prediction_score_mat,test_labels_mat ,'numThresh',length(prediction_score_mat));
+test_labels_mat(test_labels_mat>1) =2;
+test_labels_mat = test_labels_mat-1;
+prediction_score_lda = cell2mat(prediction_score);
+prec_rec(prediction_score_lda,test_labels_mat ,'numThresh',length(prediction_score_lda));
 
 %% TSNE & 5-class SVM One-vs-One
-
+close all
 %common settings
 svm_flag = 0;
 
@@ -333,8 +343,10 @@ end
 acc = sum(cell2mat(test_labels)==cell2mat(prediction))/length(cell2mat(prediction));
 disp(['Accuracy is: ',num2str(100*acc)])
 
+%plot ROC & PRC
 test_labels_mat = cell2mat(test_labels);
 test_labels_mat(test_labels_mat>1) = 0;
-prediction_score_mat = cell2mat(prediction_score);
-prec_rec(prediction_score_mat,test_labels_mat ,'numThresh',length(prediction_score_mat));
+test_labels_mat = test_labels_mat-1;
+prediction_score_tsne = cell2mat(prediction_score);
+prec_rec(prediction_score_tsne,test_labels_mat ,'numThresh',length(prediction_score_tsne));
 
