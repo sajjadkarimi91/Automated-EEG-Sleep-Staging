@@ -189,13 +189,16 @@ for i = 1:sub
     cvp.trainStore{i} = ~cvp.testStore{i};
 end
 
-%% 5-class SVM One-vs-One
+%% 5-class (SVM & KNN & NN)  One-vs-One
 close all
-svm_flag = 0;
+classfier_type = 'svm';% svm knn nn
 
 feature_sets_mat = [feature_sets{1,1},feature_sets{2,1},feature_sets{3,1}];
 feature_sets_mat = zscore(feature_sets_mat);
 predictors = feature_sets_mat;
+
+y = cell2mat(true_labels);
+[~, response] = max(y, [], 2);
 
 prediction = cell(sub, 1);
 test_labels= cell(sub, 1);
@@ -207,19 +210,31 @@ for i = 1:sub
     predictors_this = predictors;
     num_features = size(predictors_this,2);
 
-    if svm_flag==0
-        template = templateKNN('NumNeighbors',20,'Standardize',1);
-    else
-        template = templateSVM('KernelFunction', 'linear', ...
-            'PolynomialOrder', [], 'KernelScale', [], ...
-            'BoxConstraint', 0.3, 'Standardize', true);
-    end
-    Mdl = fitcecoc(predictors_this(cvp.trainStore{i}, :), response(cvp.trainStore{i}, :), ...
-        'Learners', template, ...
-        'Coding', 'onevsone', ...
-        'ClassNames', [1; 2; 3; 4; 5]);
+    if strcmp(classfier_type,'svm')||strcmp(classfier_type,'knn')
+        if strcmp(classfier_type,'knn')
+            template = templateKNN('NumNeighbors',20,'Standardize',1);
+        else
+            template = templateSVM('KernelFunction', 'linear', ...
+                'PolynomialOrder', [], 'KernelScale', [], ...
+                'BoxConstraint', 0.3, 'Standardize', true);
+        end
 
-    [~, validationScores] = predict(Mdl, predictors_this(cvp.testStore{i}, :));
+        Mdl = fitcecoc(predictors_this(cvp.trainStore{i}, :), response(cvp.trainStore{i}, :), ...
+            'Learners', template, ...
+            'Coding', 'onevsone');
+
+        [~, validationScores] = predict(Mdl, predictors_this(cvp.testStore{i}, :));
+
+    else
+        X = predictors_this(cvp.trainStore{i}, :);
+        T = cell2mat(true_labels);
+        T = T(cvp.trainStore{i}, :);
+        net = feedforwardnet([8,4]);
+        net = train(net,X',T','useGPU','yes');
+        validationScores = net(predictors_this(cvp.testStore{i}, :)')';
+        validationScores = validationScores-mean(validationScores);
+    end
+
     [~, prediction{i}] = max(validationScores, [], 2);
     test_labels{i} = response(cvp.testStore{i});
     prediction_score{i} = validationScores(:,2);
@@ -228,16 +243,18 @@ end
 acc = sum(cell2mat(test_labels)==cell2mat(prediction))/length(cell2mat(prediction));
 disp(['Accuracy is: ',num2str(100*acc)])
 
+%plot confusion matrix
 test_labels_mat = cell2mat(test_labels);
 output_label_mat = cell2mat(prediction);
-plotconfusion(test_labels_mat,output_label_mat);
+plotconfusion( categorical(test_labels_mat),categorical(output_label_mat));
 
-%% lda & plsda & 5-class SVM One-vs-One with
+%% lda & pca & 5-class (SVM & KNN & NN)  One-vs-One
 close all
 %common settings
-svm_flag = 0;
-dim = 4;
+classfier_type = 'nn';% svm knn nn
+dim = 2;
 lda_flag = 0;
+nn_structure = [8,4];
 
 y = cell2mat(true_labels);
 [~, response] = max(y, [], 2);
@@ -248,7 +265,7 @@ feature_sets_mat = zscore(feature_sets_mat);
 predictors = feature_sets_mat;
 
 prediction = cell(sub, 1);
-test_labels= cell(sub, 1);
+test_labels = cell(sub, 1);
 prediction_score= cell(sub, 1);
 
 for i = 1:sub
@@ -261,24 +278,38 @@ for i = 1:sub
         [para_lda, Z_lda] = lda_sldr(train_data, train_label, dim); % Linear discriminant analysis (LDA)
         predictors_this = test_sldr(predictors, para_lda);
     else
+        warning("off")
         [coeff, predictors_this, ~, ~, ~, mu] = pca(predictors,'NumComponents',dim);
+        warning("on")
     end
 
     num_features = size(predictors_this,2);
-    if svm_flag==0
-        template = templateKNN('NumNeighbors',20,'Standardize',1);
+
+    if strcmp(classfier_type,'svm')||strcmp(classfier_type,'knn')
+        if strcmp(classfier_type,'knn')
+            template = templateKNN('NumNeighbors',20,'Standardize',1);
+        else
+            template = templateSVM('KernelFunction', 'linear', ...
+                'PolynomialOrder', [], 'KernelScale', [], ...
+                'BoxConstraint', 0.3, 'Standardize', true);
+        end
+
+        Mdl = fitcecoc(predictors_this(cvp.trainStore{i}, :), response(cvp.trainStore{i}, :), ...
+            'Learners', template, ...
+            'Coding', 'onevsone');
+
+        [~, validationScores] = predict(Mdl, predictors_this(cvp.testStore{i}, :));
+
     else
-        template = templateSVM('KernelFunction', 'linear', ...
-            'PolynomialOrder', [], 'KernelScale', [], ...
-            'BoxConstraint', 0.3, 'Standardize', true);
+        X = predictors_this(cvp.trainStore{i}, :);
+        T = cell2mat(true_labels);
+        T = T(cvp.trainStore{i}, :);
+        net = feedforwardnet(nn_structure);
+        net = train(net,X',T','useGPU','yes');
+        validationScores = net(predictors_this(cvp.testStore{i}, :)')';
+        validationScores = validationScores-mean(validationScores);
     end
 
-    Mdl = fitcecoc(predictors_this(cvp.trainStore{i}, :), response(cvp.trainStore{i}, :), ...
-        'Learners', template, ...
-        'Coding', 'onevsone', ...
-        'ClassNames', [1; 2; 3; 4; 5]);
-
-    [~, validationScores] = predict(Mdl, predictors_this(cvp.testStore{i}, :));
     [~, prediction{i}] = max(validationScores, [], 2);
     test_labels{i} = response(cvp.testStore{i});
     prediction_score{i} = validationScores(:,2);
@@ -287,16 +318,20 @@ end
 acc = sum(cell2mat(test_labels)==cell2mat(prediction))/length(cell2mat(prediction));
 disp(['Accuracy is: ',num2str(100*acc)])
 
+%plot confusion matrix
 test_labels_mat = cell2mat(test_labels);
 output_label_mat = cell2mat(prediction);
-plotconfusion(test_labels_mat,output_label_mat);
+plotconfusion( categorical(test_labels_mat),categorical(output_label_mat));
 
-%% TSNE & 5-class SVM One-vs-One
+%% TSNE & 5-class (SVM & KNN & NN) One-vs-One
 close all
 %common settings
-svm_flag = 0;
+classfier_type = 'knn';% svm knn nn
+nn_structure = [20,8,4];
 
 predictors = tsne_features;
+y = cell2mat(true_labels);
+[~, response] = max(y, [], 2);
 
 prediction = cell(sub, 1);
 test_labels= cell(sub, 1);
@@ -308,20 +343,31 @@ for i = 1:sub
     predictors_this = predictors;
     num_features = size(predictors_this,2);
 
-    if svm_flag==0
-        template = templateKNN('NumNeighbors',20,'Standardize',1);
+    if strcmp(classfier_type,'svm')||strcmp(classfier_type,'knn')
+        if strcmp(classfier_type,'knn')
+            template = templateKNN('NumNeighbors',20,'Standardize',1);
+        else
+            template = templateSVM('KernelFunction', 'linear', ...
+                'PolynomialOrder', [], 'KernelScale', [], ...
+                'BoxConstraint', 0.3, 'Standardize', true);
+        end
+
+        Mdl = fitcecoc(predictors_this(cvp.trainStore{i}, :), response(cvp.trainStore{i}, :), ...
+            'Learners', template, ...
+            'Coding', 'onevsone');
+
+        [~, validationScores] = predict(Mdl, predictors_this(cvp.testStore{i}, :));
+
     else
-        template = templateSVM('KernelFunction', 'linear', ...
-            'PolynomialOrder', [], 'KernelScale', [], ...
-            'BoxConstraint', 0.3, 'Standardize', true);
+        X = predictors_this(cvp.trainStore{i}, :);
+        T = cell2mat(true_labels);
+        T = T(cvp.trainStore{i}, :);
+        net = feedforwardnet(nn_structure);
+        net = train(net,X',T','useGPU','yes');
+        validationScores = net(predictors_this(cvp.testStore{i}, :)')';
+        validationScores = validationScores-mean(validationScores);
     end
 
-    Mdl = fitcecoc(predictors_this(cvp.trainStore{i}, :), response(cvp.trainStore{i}, :), ...
-        'Learners', template, ...
-        'Coding', 'onevsone', ...
-        'ClassNames', [1; 2; 3; 4; 5]);
-
-    [~, validationScores] = predict(Mdl, predictors_this(cvp.testStore{i}, :));
     [~, prediction{i}] = max(validationScores, [], 2);
     test_labels{i} = response(cvp.testStore{i});
     prediction_score{i} = validationScores(:,2);
@@ -330,6 +376,7 @@ end
 acc = sum(cell2mat(test_labels)==cell2mat(prediction))/length(cell2mat(prediction));
 disp(['Accuracy is: ',num2str(100*acc)])
 
+%plot confusion matrix
 test_labels_mat = cell2mat(test_labels);
 output_label_mat = cell2mat(prediction);
-plotconfusion(test_labels_mat,output_label_mat);
+plotconfusion( categorical(test_labels_mat),categorical(output_label_mat));
