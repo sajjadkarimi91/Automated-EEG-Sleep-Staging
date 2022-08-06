@@ -37,7 +37,8 @@ The implemented methodes include:
 ## Dependency:
      sleep-edf dataset
      https://github.com/sajjadkarimi91/SLDR-supervised-linear-dimensionality-reduction-toolbox
-     
+     Kijoon Lee (2022). Fast Approximate Entropy (https://www.mathworks.com/matlabcentral/fileexchange/32427-fast-approximate-entropy), MATLAB Central File Exchange.
+     Valentina Unakafova (2022). Permutation entropy (fast algorithm) (https://www.mathworks.com/matlabcentral/fileexchange/44161-permutation-entropy-fast-algorithm)
      
 
 ## Usage:
